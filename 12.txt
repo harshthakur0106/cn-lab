@@ -1,0 +1,36 @@
+import socket
+
+def dns_lookup():
+    while True:
+        choice = input("\nEnter '1' for IP to Hostname lookup or '2' for Hostname to IP lookup (or 'q' to quit): ").strip()
+
+        if choice == '1':
+            ip_address = input("Enter IP address: ").strip()
+            try:
+                # Perform reverse DNS lookup
+                hostname = socket.gethostbyaddr(ip_address)[0]
+                print(f"Hostname for IP {ip_address} is: {hostname}")
+            except socket.herror:
+                print("Hostname not found for this IP address.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+        elif choice == '2':
+            hostname = input("Enter hostname (URL): ").strip()
+            try:
+                # Perform forward DNS lookup
+                ip_address = socket.gethostbyname(hostname)
+                print(f"IP address for hostname {hostname} is: {ip_address}")
+            except socket.gaierror:
+                print("IP address not found for this hostname.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+        elif choice.lower() == 'q':
+            print("Exiting the program.")
+            break
+        else:
+            print("Invalid choice. Please enter '1', '2', or 'q'.")
+
+if __name__ == "__main__":
+    dns_lookup()

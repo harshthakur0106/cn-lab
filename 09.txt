@@ -1,0 +1,211 @@
+//UDP FOR FILE TRANSFER
+//JAVA CODE
+//SERVER
+// FileServer.java
+
+import java.io.*;
+import java.net.*;
+
+public class FileServer {
+    public static void main(String[] args) {
+        DatagramSocket socket = null;
+        try {
+            // Define the server port and the file to be sent
+            int port = 9876;
+            String filePath = "file_to_send.txt"; // Replace with your file path
+
+            // Create a DatagramSocket
+            socket = new DatagramSocket();
+
+            // Read the file into a byte array
+            File file = new File(filePath);
+            FileInputStream fileInputStream = new FileInputStream(file);
+            byte[] fileData = new byte[(int) file.length()];
+            fileInputStream.read(fileData);
+            fileInputStream.close();
+
+            // Send the file data in packets
+            InetAddress clientAddress = InetAddress.getByName("127.0.0.1"); // Client IP address
+            int packetSize = 1024; // Size of each packet
+            int totalPackets = (int) Math.ceil(fileData.length / (double) packetSize);
+
+            for (int i = 0; i < totalPackets; i++) {
+                int start = i * packetSize;
+                int length = Math.min(packetSize, fileData.length - start);
+
+                // Copy the segment of the file to be sent in the current packet
+                byte[] packetData = new byte[length];
+                System.arraycopy(fileData, start, packetData, 0, length);
+
+                // Create and send a packet with the file data
+                DatagramPacket packet = new DatagramPacket(packetData, length, clientAddress, port);
+                socket.send(packet);
+                System.out.println("Sent packet " + (i + 1) + " of " + totalPackets);
+            }
+
+            // Send an empty packet as a signal that the file transfer is complete
+            byte[] endSignal = new byte[0];
+            DatagramPacket endPacket = new DatagramPacket(endSignal, 0, clientAddress, port);
+            socket.send(endPacket);
+
+            System.out.println("File sent successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+//CLIENT
+// FileClient.java
+
+import java.io.*;
+import java.net.*;
+
+public class FileClient {
+    public static void main(String[] args) {
+        DatagramSocket socket = null;
+        FileOutputStream fileOutputStream = null;
+
+        try {
+            // Define the port to listen on and the file to save the received data
+            int port = 9876;
+            String outputFilePath = "received_file.txt";
+
+            // Create a DatagramSocket to receive data
+            socket = new DatagramSocket(port);
+            byte[] receiveBuffer = new byte[1024];
+
+            // Open a file output stream to write the received data
+            fileOutputStream = new FileOutputStream(outputFilePath);
+            System.out.println("Receiving file...");
+
+            while (true) {
+                // Receive a packet
+                DatagramPacket packet = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+                socket.receive(packet);
+
+                // If an empty packet is received, it means the transfer is complete
+                if (packet.getLength() == 0) {
+                    break;
+                }
+
+                // Write the packet data to the file
+                fileOutputStream.write(packet.getData(), 0, packet.getLength());
+                System.out.println("Received packet of size " + packet.getLength());
+            }
+
+            System.out.println("File received successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fileOutputStream != null) {
+                try {
+                    fileOutputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+##PYTHON CODE
+##SERVER
+# udp_file_server.py
+
+import socket
+
+def send_file(filename, client_ip, client_port):
+    # Create a UDP socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Set the chunk size and IP/port for the client
+    chunk_size = 1024
+    client_address = (client_ip, client_port)
+
+    # Open the file and send it in chunks
+    with open(filename, 'rb') as file:
+        chunk = file.read(chunk_size)
+        while chunk:
+            server_socket.sendto(chunk, client_address)
+            chunk = file.read(chunk_size)
+    
+    # Send an end-of-file signal
+    server_socket.sendto(b"END", client_address)
+    print("File sent successfully.")
+
+    # Close the socket
+    server_socket.close()
+
+if __name__ == "__main__":
+    filename = 'file_to_send.txt'  # File to be sent
+    client_ip = '127.0.0.1'        # IP address of the client
+    client_port = 65432            # Port of the client
+
+    send_file(filename, client_ip, client_port)
+
+
+
+
+
+
+
+
+
+
+
+##CLIENT
+# udp_file_client.py
+
+import socket
+
+def receive_file(filename, server_ip, server_port):
+    # Create a UDP socket
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Bind the socket to the server IP and port
+    client_socket.bind((server_ip, server_port))
+    print("Client is ready to receive the file...")
+
+    # Open a file to write the incoming data
+    with open(filename, 'wb') as file:
+        while True:
+            # Receive a chunk of data
+            chunk, server_address = client_socket.recvfrom(1024)
+            # Check for the end-of-file signal
+            if chunk == b"END":
+                break
+            file.write(chunk)
+
+    print("File received successfully.")
+
+    # Close the client socket
+    client_socket.close()
+
+if __name__ == "__main__":
+    filename = 'received_file.txt'  # Name to save the received file
+    server_ip = '127.0.0.1'         # IP address of the server
+    server_port = 65432             # Port to listen on
+
+    receive_file(filename, server_ip, server_port)
+

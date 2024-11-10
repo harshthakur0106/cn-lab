@@ -1,0 +1,178 @@
+//TCP FILE TRANSFER CODE
+//JAVA CODE
+//SERVER
+// FileReceiverServer.java
+
+import java.io.*;
+import java.net.*;
+
+public class FileReceiverServer {
+    public static void main(String[] args) {
+        int port = 12345; // Define the port to listen on
+        String saveFilePath = "received_file.txt"; // The file path where the received file will be saved
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Server is listening on port " + port);
+
+            // Wait for client connection
+            Socket socket = serverSocket.accept();
+            System.out.println("Client connected.");
+
+            // Input stream to receive the file data
+            InputStream inputStream = socket.getInputStream();
+            FileOutputStream fileOutputStream = new FileOutputStream(saveFilePath);
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+
+            // Read from the input stream and write to the file
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, bytesRead);
+            }
+
+            System.out.println("File received and saved to " + saveFilePath);
+
+            // Close resources
+            fileOutputStream.close();
+            socket.close();
+        } catch (IOException ex) {
+            System.out.println("Server exception: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+}
+
+
+
+
+
+
+//CLIENT
+// FileSenderClient.java
+
+import java.io.*;
+import java.net.*;
+
+public class FileSenderClient {
+    public static void main(String[] args) {
+        String hostname = "localhost"; // Server IP address or hostname
+        int port = 12345; // Port to connect to
+        String filePath = "file_to_send.txt"; // Path of the file to be sent
+
+        try (Socket socket = new Socket(hostname, port)) {
+            System.out.println("Connected to server.");
+
+            // Output stream to send the file data
+            FileInputStream fileInputStream = new FileInputStream(filePath);
+            OutputStream outputStream = socket.getOutputStream();
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+
+            // Read from the file and send data to the server
+            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            System.out.println("File sent successfully.");
+
+            // Close resources
+            fileInputStream.close();
+        } catch (IOException ex) {
+            System.out.println("Client exception: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+##PYTHON CODE
+##SERVER
+# file_server.py
+
+import socket
+
+def send_file(filename):
+    # Create a socket object
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Define the IP address and port number
+    host = '127.0.0.1'  # localhost
+    port = 65432        # Port to listen on
+
+    # Bind the socket to the host and port
+    server_socket.bind((host, port))
+
+    # Listen for incoming connections
+    server_socket.listen(1)
+    print("Server is listening for incoming connections...")
+
+    # Accept a connection
+    client_socket, client_address = server_socket.accept()
+    print(f"Connected by {client_address}")
+
+    # Open the file and send its content
+    with open(filename, 'rb') as file:
+        # Read the file in chunks and send each chunk
+        chunk = file.read(1024)
+        while chunk:
+            client_socket.send(chunk)
+            chunk = file.read(1024)
+
+    print("File sent successfully.")
+    
+    # Close the client and server sockets
+    client_socket.close()
+    server_socket.close()
+
+if __name__ == "__main__":
+    filename = 'file_to_send.txt'  # Replace with your file name
+    send_file(filename)
+
+
+
+
+
+
+
+
+##CLIENT
+# file_client.py
+
+import socket
+
+def receive_file(filename):
+    # Create a socket object
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Define the IP address and port of the server
+    host = '127.0.0.1'  # localhost
+    port = 65432        # Port to connect to
+
+    # Connect to the server
+    client_socket.connect((host, port))
+    print("Connected to the server.")
+
+    # Open a file to write the received data
+    with open(filename, 'wb') as file:
+        # Receive the file data in chunks and write to the file
+        chunk = client_socket.recv(1024)
+        while chunk:
+            file.write(chunk)
+            chunk = client_socket.recv(1024)
+
+    print("File received successfully.")
+
+    # Close the client socket
+    client_socket.close()
+
+if __name__ == "__main__":
+    filename = 'received_file.txt'  # Name of the file to save the received content
+    receive_file(filename)
